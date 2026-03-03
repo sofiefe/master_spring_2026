@@ -7,3 +7,5 @@ matplotlib
 datasets
 evaluate
 seaborn
+wandb
+python-dotenv
