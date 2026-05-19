@@ -1,10 +1,10 @@
 #!/bin/sh
 #SBATCH --account=share-ie-idi       # E.g. "ie-idi" if you belong to IDI
-#SBATCH --job-name=binary
+#SBATCH --job-name=bbfo
 #SBATCH --time=0-04:00:00         # format: D-HH:MM:SS
 
 #SBATCH --partition=GPUQ          # Asking for a GPU
-#SBATCH --gres=gpu:1             # Setting the number of GPUs to 1
+#SBATCH --gres=gpu:a100:1             # Setting the number of GPUs to 1
 #SBATCH --mem=512G                 # Asking for 16GB RAM
 #SBATCH --nodes=1
 #SBATCH --output=./detection_results/output.txt      # Specifying 'stdout'
@@ -21,13 +21,8 @@ echo "ID of job: $SLURM_JOB_ID"
 echo "The job was run on these nodes: $SLURM_JOB_NODELIST"
 
 module purge
-
-# Running your python file
 module load Anaconda3/2024.02-1
-#pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
-#pip install -r requirements.txt
-#pip install transformers[torch]
-#pip install 'accelerate>=0.26.0'
+source activate misogyny_env
 
 python detection_binary_fo.py
 #python detection_binary_trans_fo.py
