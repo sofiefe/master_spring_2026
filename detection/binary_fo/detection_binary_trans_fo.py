@@ -32,18 +32,18 @@ load_dotenv()
 
 
 HP = {
-    "test_nr": "bt base focal x",
+    "test_nr": "bt base focal detERRTrans",
     "max_length": 350,
-    "batch_size": 128,
-    "learning_rate": 5e-6,
+    "batch_size": 16,
+    "learning_rate": 4e-6,
     "epochs": 10,
-    "weight_decay": 0.0,
+    "weight_decay": 0.1,
     "warmup_ratio": 0.05,
-    "model_name": "xlm-roberta-large",  # xlm-roberta-base  google-bert/bert-base-multilingual-cased
+    "model_name": "xlm-roberta-base",
     "random_state": 2018,
     "output_dir": "./detection_results/results",
     "logging_dir": "./detection_results/logs",
-    "gamma": 2.0,
+    "gamma": 1.0,
     "factor": 1.0,
 }
 
@@ -103,17 +103,17 @@ tokenizer = AutoTokenizer.from_pretrained(HP["model_name"])
 data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
 
 train_dataset = Dataset.from_pandas(training_data).shuffle(seed=HP["random_state"])
-test_dataset = Dataset.from_pandas(test_data).shuffle(seed=HP["random_state"])
+test_dataset = Dataset.from_pandas(test_data)
 
 
 def tokenize_function_trans(example):
     texts = [t if isinstance(t, str) else "" for t in example["translated_text"]]
-    return tokenizer(texts, truncation=True, padding=True, max_length=HP["max_length"])
+    return tokenizer(texts, truncation=True, max_length=HP["max_length"])
 
 
 def tokenize_function(example):
     return tokenizer(
-        example["text"], truncation=True, padding=True, max_length=HP["max_length"]
+        example["text"], truncation=True, max_length=HP["max_length"]
     )
 
 
@@ -140,7 +140,7 @@ train_valid_data_dict = DatasetDict(
     {"train": train_valid_data["train"], "validation": train_valid_data["test"]}
 )
 
-test_dataset = test_dataset.remove_columns(["id", "binary", "multiclass"])
+test_dataset = test_dataset.remove_columns(["binary", "multiclass"])
 test_dataset_tokenized = test_dataset.map(tokenize_function, batched=True)
 # endregion
 
@@ -271,6 +271,34 @@ f1s = 2 * precision * recall / (precision + recall + 1e-8)
 honest_f1 = f1_score(test_labels, final_preds)
 honest_f2 = fbeta_score(test_labels, final_preds, beta=2)
 
+inv_label_mapping = {v: k for k, v in label_mapping.items()}
+
+test_df = pd.DataFrame({
+    "id": test_dataset_tokenized["id"],  # now preserved
+    "text": test_dataset_tokenized["text"],
+    "true_label": test_labels,
+    "predicted": final_preds,
+})
+test_df = test_df.set_index("id")  # makes it easy to look up by original ID
+test_df["predicted_name"] = test_df["predicted"].map(inv_label_mapping)
+test_df["true_label_name"] = test_df["true_label"].map(inv_label_mapping)
+
+misclassified = test_df[test_df["predicted"] != test_df["true_label"]].copy()
+misclassified["confidence"] = np.where(
+    misclassified["predicted"] == 1,
+    test_probs[misclassified.index],
+    1 - test_probs[misclassified.index],
+)
+misclassified = misclassified.sort_values("confidence", ascending=False)
+
+error_table = wandb.Table(
+    columns=["id", "text", "true_label", "predicted", "confidence"],
+    data=[
+        [idx, row["text"], row["true_label_name"], row["predicted_name"], row["confidence"]]
+        for idx, row in misclassified.iterrows()
+    ],
+)
+
 
 wandb.log(
     {
@@ -282,6 +310,7 @@ wandb.log(
         "confusion_matrix": wandb.plot.confusion_matrix(
             y_true=test_labels, preds=final_preds, class_names=["non-sexist", "sexist"]
         ),
+        #"misclassified_examples": error_table,
     }
 )
 
