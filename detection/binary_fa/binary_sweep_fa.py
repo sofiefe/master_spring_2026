@@ -78,7 +78,7 @@ tokenizer = AutoTokenizer.from_pretrained(HP["model_name"])
 data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
 
 train_dataset = Dataset.from_pandas(training_data).shuffle(seed=HP["random_state"])
-test_dataset = Dataset.from_pandas(test_data).shuffle(seed=HP["random_state"])
+test_dataset = Dataset.from_pandas(test_data)
 
 
 def tokenize_function(example):
@@ -162,7 +162,7 @@ sweep_config = {
         "epochs": {"values": [3, 5, 10]},
         "weight_decay": {"values": [0.0, 0.01, 0.05, 0.1]},
         "warmup_ratio": {"values": [0.0, 0.05, 0.1]},
-        #"gamma": {"values": [0.5, 1.0, 1.5, 2.0]},
+        # "gamma": {"values": [0.5, 1.0, 1.5, 2.0]},
         "factor": {"distribution": "int_uniform", "min": 1, "max": 25},
         # "factor": {"values": [1]},
     },
@@ -262,7 +262,7 @@ def train():
     )
 
     trainer = WeightedTrainer(
-        #gamma=config.gamma,
+        # gamma=config.gamma,
         model_init=model_init,
         args=training_args,
         train_dataset=train_valid_run["train"],

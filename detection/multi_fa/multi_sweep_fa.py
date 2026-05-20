@@ -75,7 +75,7 @@ other_data = training_data[training_data["labels"] != 0]
 tokenizer = AutoTokenizer.from_pretrained(HP["model_name"])
 data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
 
-test_dataset = Dataset.from_pandas(test_data).shuffle(seed=HP["random_state"])
+test_dataset = Dataset.from_pandas(test_data)
 
 
 def tokenize_function(example):
@@ -87,9 +87,6 @@ def tokenize_function(example):
 test_dataset = test_dataset.remove_columns(["id", "binary", "multiclass"])
 test_dataset_tokenized = test_dataset.map(tokenize_function, batched=True)
 # endregion
-
-
-
 
 
 # region Metrics
@@ -200,9 +197,7 @@ def train():
             labels = inputs.pop("labels")
             outputs = model(**inputs)
             logits = outputs.get("logits")
-            loss_fct = CrossEntropyLoss(
-                weight=class_weights_run.to(logits.device)
-            )
+            loss_fct = CrossEntropyLoss(weight=class_weights_run.to(logits.device))
             loss = loss_fct(logits, labels)
             return (loss, outputs) if return_outputs else loss
 

@@ -75,7 +75,7 @@ other_data = training_data[training_data["labels"] != 0]
 tokenizer = AutoTokenizer.from_pretrained(HP["model_name"])
 data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
 
-test_dataset = Dataset.from_pandas(test_data).shuffle(seed=HP["random_state"])
+test_dataset = Dataset.from_pandas(test_data)
 
 
 def tokenize_function(example):

@@ -106,7 +106,7 @@ tokenizer = AutoTokenizer.from_pretrained(HP["model_name"])
 data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
 
 train_dataset = Dataset.from_pandas(training_data).shuffle(seed=HP["random_state"])
-test_dataset = Dataset.from_pandas(test_data).shuffle(seed=HP["random_state"])
+test_dataset = Dataset.from_pandas(test_data)
 
 
 def tokenize_function_trans(example):
@@ -115,9 +115,7 @@ def tokenize_function_trans(example):
 
 
 def tokenize_function(example):
-    return tokenizer(
-        example["text"], truncation=True, max_length=HP["max_length"]
-    )
+    return tokenizer(example["text"], truncation=True, max_length=HP["max_length"])
 
 
 train_dataset = train_dataset.remove_columns(
@@ -225,7 +223,6 @@ class_weights = torch.tensor(class_weights, dtype=torch.float)
 class_weights = class_weights.to("cuda" if torch.cuda.is_available() else "cpu")
 
 
-
 class WeightedTrainer(Trainer):
     def compute_loss(self, model, inputs, return_outputs=False, **kwargs):
         labels = inputs.pop("labels")
@@ -295,12 +292,14 @@ test_f1_weighted = report["weighted avg"]["f1-score"]
 
 inv_label_mapping = {v: k for k, v in label_mapping.items()}
 
-test_df = pd.DataFrame({
-    "id": test_dataset_tokenized["id"],
-    "text": test_dataset_tokenized["text"],
-    "true_label": y_true,
-    "predicted": preds,
-})
+test_df = pd.DataFrame(
+    {
+        "id": test_dataset_tokenized["id"],
+        "text": test_dataset_tokenized["text"],
+        "true_label": y_true,
+        "predicted": preds,
+    }
+)
 test_df = test_df.set_index("id")
 test_df["true_label_name"] = test_df["true_label"].map(inv_label_mapping)
 test_df["predicted_name"] = test_df["predicted"].map(inv_label_mapping)
@@ -308,14 +307,21 @@ test_df["predicted_name"] = test_df["predicted"].map(inv_label_mapping)
 misclassified = test_df[test_df["predicted"] != test_df["true_label"]].copy()
 # For multiclass, confidence = probability of the predicted class
 misclassified["confidence"] = prob_matrix[
-    misclassified.index.map(lambda i: test_df.index.get_loc(i)), misclassified["predicted"]
+    misclassified.index.map(lambda i: test_df.index.get_loc(i)),
+    misclassified["predicted"],
 ]
 misclassified = misclassified.sort_values("confidence", ascending=False)
 
 error_table = wandb.Table(
     columns=["id", "text", "true_label", "predicted", "confidence"],
     data=[
-        [idx, row["text"], row["true_label_name"], row["predicted_name"], row["confidence"]]
+        [
+            idx,
+            row["text"],
+            row["true_label_name"],
+            row["predicted_name"],
+            row["confidence"],
+        ]
         for idx, row in misclassified.iterrows()
     ],
 )
@@ -339,7 +345,7 @@ wandb.log(
             preds=preds,
             class_names=class_names,
         ),
-        #"misclassified_examples": error_table,
+        # "misclassified_examples": error_table,
     }
 )
 
