@@ -50,7 +50,7 @@ def set_seed(seed: int):
     os.environ["PYTHONHASHSEED"] = str(seed)
     os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
 
-
+set_seed(HP["random_state"])
 # region datasets
 
 label_mapping = {
