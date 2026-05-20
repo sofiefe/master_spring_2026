@@ -306,7 +306,7 @@ wandb.log(
         "confusion_matrix": wandb.plot.confusion_matrix(
             y_true=test_labels, preds=final_preds, class_names=["non-sexist", "sexist"]
         ),
-        "misclassified_examples": error_table,
+        #"misclassified_examples": error_table,
     }
 )
 
