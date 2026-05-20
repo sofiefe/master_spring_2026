@@ -26,5 +26,5 @@ source activate misogyny_env
 
 
 python detection_multi_fa.py
-python detection_multi_trans_fa.py
+#python detection_multi_trans_fa.py
 
