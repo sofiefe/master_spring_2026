@@ -25,6 +25,7 @@ import random
 # Hyperparametre
 
 HP = {
+    "test_nr": "multi ff sweep",
     "model_name": "xlm-roberta-base",  # roberta
     "random_state": 2018,
     "output_dir": "./detection_results/results",
